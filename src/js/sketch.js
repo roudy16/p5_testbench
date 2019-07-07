@@ -1,15 +1,68 @@
+class RingBuffer {
+    constructor(sz) {
+        this.buf = new Array(sz);
+        this.beg = 0;
+        this.end = 0;
+        this.size = 0;
+        this.cap = sz;
+    }
+
+    push(item) {
+        if (this.end === this.cap) {
+            this.end = 0;
+        }
+
+        this.buf[this.end] = item;
+
+        if (this.size < this.cap) {
+            this.size += 1;
+        }
+
+        this.end += 1;
+
+        if (this.size === this.cap) {
+            this.beg += 1;
+
+            if (this.beg === this.size) {
+                this.beg = 0;
+            } else if (this.end === this.size) {
+                this.end = 0;
+            }
+        }
+    }
+
+    get(index) {
+        let calcIdx = (this.beg + index) % this.cap;
+        return this.buf[calcIdx];
+    }
+
+    calcAvg() {
+        let acc = 0.0;
+
+        for (let i = 0; i < this.size; i++) {
+            acc += this.buf[i];
+        }
+
+        if (this.size !== 0) {
+            return acc / this.size;
+        } else {
+            return 0.0;
+        }
+    }
+}
+
 class Point2D {
     constructor(x, y) {
-        this.x = x|0;
-        this.y = y|0;
+        this.x = x;
+        this.y = y;
     }
 }
 
 class Point3D {
     constructor(x, y ,z) {
-        this.x = x|0;
-        this.y = y|0;
-        this.z = z|0;
+        this.x = x;
+        this.y = y;
+        this.z = z;
     }
 }
 
@@ -174,10 +227,11 @@ let gColor2 = new ColorRGB(242, 15, 56);
 let gBackgroundColor1 = new ColorRGB(255, 77, 115);
 let gBackgroundColor2 = new ColorRGB(250, 125, 47);
 let gBackgroundImage;
+let gRecentFrameTimes = new RingBuffer(64);
 
-let screenOrigin = new Point2D(0, 0);
-let screenTopRight = new Point2D(SCREEN_WIDTH - 1, 0);
-let screenBottomRight = new Point2D(SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1);
+let screenOrigin = new Point2D(0.0, 0.0);
+let screenTopRight = new Point2D((SCREEN_WIDTH - 1.0), 0.0);
+let screenBottomRight = new Point2D(SCREEN_WIDTH - 1.0, SCREEN_HEIGHT - 1.0);
 
 /**
  * @param {int} lifetime The lifetime of the Entity in milliseconds
@@ -257,5 +311,7 @@ function draw() {
 
     // Keep track of time taken to update frame
     let frameTime = Date.now() - gNow;
-    console.log("Frame Time: %d", frameTime);
+    gRecentFrameTimes.push(frameTime);
+    //console.log("Frame Time: %d", gRecentFrameTimes.get(gRecentFrameTimes.size - 1));
+    //console.log("Recent Avg Time: %d", gRecentFrameTimes.calcAvg());
 }
