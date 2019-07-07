@@ -1,0 +1,7 @@
+*.swp
+*.swo
+*~
+
+/.idea/
+
+src/js/p5/p5*
