@@ -2,32 +2,23 @@ class RingBuffer {
     constructor(sz) {
         this.buf = new Array(sz);
         this.beg = 0;
-        this.end = 0;
         this.size = 0;
         this.cap = sz;
     }
 
     push(item) {
-        if (this.end === this.cap) {
-            this.end = 0;
-        }
+        let end = (this.beg + this.size) % this.cap;
 
-        this.buf[this.end] = item;
-
-        if (this.size < this.cap) {
-            this.size += 1;
-        }
-
-        this.end += 1;
+        this.buf[end] = item;
 
         if (this.size === this.cap) {
             this.beg += 1;
 
             if (this.beg === this.size) {
                 this.beg = 0;
-            } else if (this.end === this.size) {
-                this.end = 0;
             }
+        } else {
+            this.size += 1;
         }
     }
 
@@ -71,6 +62,21 @@ class ColorRGB {
         this.r = r|0;
         this.g = g|0;
         this.b = b|0;
+    }
+}
+
+class QuadraticBezier1D {
+    constructor(p0, p1, p2) {
+        this.p0 = p0;
+        this.p1 = p1;
+        this.p2 = p2;
+    }
+
+    calcPoint(t) {
+        let oneMinusT = (1.0 - t);
+        let a = oneMinusT * oneMinusT;
+        let b = t * t;
+        return this.p1 + a * (this.p0 - this.p1) + b * (this.p2 - this.p1);
     }
 }
 
@@ -122,6 +128,7 @@ class CircleEntity {
 
         this.radius = radius;
         this.position = pos;
+        this.scale = 1.0;
 
         // TODO: color to builder
         this.color = col;
@@ -132,7 +139,11 @@ class CircleEntity {
         this.age = 0.0;
 
         // TODO: Move animation data generation to builder
-        this.path = path;
+        if (path) {
+            this.path = path;
+        } else {
+            this.path = null;
+        }
     }
 
     update() {
@@ -146,7 +157,7 @@ class CircleEntity {
     draw() {
         fill(this.color.r, this.color.g, this.color.b);
         noStroke();
-        circle(this.position.x, this.position.y, this.radius);
+        circle(this.position.x, this.position.y, this.radius * this.scale);
     }
 }
 
