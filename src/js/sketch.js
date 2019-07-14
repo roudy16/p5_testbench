@@ -57,6 +57,10 @@ class Point3D {
     }
 }
 
+class Mat2x2 {
+
+}
+
 class ColorRGB {
     constructor(r, g, b) {
         this.r = r|0;
@@ -223,6 +227,20 @@ function createRadialGradientImage(w, h, x, y, ci, co) {
 }
 
 // ##########
+// GEO UTILS
+// ##########
+
+function clampTo(min, max, val) {
+    if (val < min) return min;
+    if (val > max)  return max;
+    return val;
+}
+
+function matVecMul2D(a, b, c, d, s0, s1) {
+
+}
+
+// ##########
 // APP SPECIFIC
 // ##########
 
@@ -233,26 +251,81 @@ let gNow;
 let gIdSrc = 0 >>> 0;
 let gEntities = [];
 
-let gColor1 = new ColorRGB(17, 107, 250);
-let gColor2 = new ColorRGB(242, 15, 56);
-let gBackgroundColor1 = new ColorRGB(255, 77, 115);
+let gColor1 = new ColorRGB(255, 204, 153);
+let gColor2 = new ColorRGB(250, 250, 250);
+let gColor3 = new ColorRGB(180, 180, 180);
+let gBackgroundColor1 = new ColorRGB(64, 64, 64);
 let gBackgroundColor2 = new ColorRGB(250, 125, 47);
 let gBackgroundImage;
 let gRecentFrameTimes = new RingBuffer(64);
 
-let screenOrigin = new Point2D(0.0, 0.0);
-let screenTopRight = new Point2D((SCREEN_WIDTH - 1.0), 0.0);
-let screenBottomRight = new Point2D(SCREEN_WIDTH - 1.0, SCREEN_HEIGHT - 1.0);
+let gCardiodOrigin = new Point2D(0.1 * SCREEN_WIDTH, 0.5 * SCREEN_HEIGHT);
+let gCusp = new Point2D(gCardiodOrigin.x + SCREEN_WIDTH * 0.10, gCardiodOrigin.y);
+let screenMidRight = new Point2D((SCREEN_WIDTH - 1.0), 0.5 * SCREEN_HEIGHT);
+
+function createCardiodImage(w, h) {
+    colorMode(RGB, 255);
+
+    let img = createImage(w, h);
+    img.loadPixels();
+
+    let color1 = gColor1;
+    let color2 = gBackgroundColor1;
+
+    let wInverse = 1.0 / w;
+    let hInverse = 1.0 / h;
+
+    let cardiod_a = 0.10;
+
+    for (let j = 0; j < h; j++) {
+        for (let i = 0; i < w; i++) {
+            let x_norm = i * wInverse;
+            let y_norm = j * hInverse;
+
+            let x_from_mid = x_norm - 0.1;
+            let y_from_mid = y_norm - 0.5;
+
+
+            let theta = atan2(y_from_mid, x_from_mid);
+
+            let x_cardiod = cardiod_a * (2.0 * cos(theta) - cos(2.0 * theta) - 1.0);
+            let y_cardiod = cardiod_a * (2.0 * sin(theta) - sin(2.0 * theta));
+
+            let dist_from_cardiod = sqrt(sq(x_from_mid - x_cardiod) + sq(y_from_mid - y_cardiod));
+
+            let dist_mid_to_cardiod = x_cardiod * x_cardiod + y_cardiod * y_cardiod;
+            let dist_from_mid = (x_from_mid * x_from_mid) + (y_from_mid * y_from_mid);
+            let is_inside = dist_from_mid < dist_mid_to_cardiod;
+
+            let t;
+            let col;
+
+            if (is_inside) {
+                t = 0.0;
+                col = genColorOnLineAt(color1, color2, t);
+            } else {
+                t = clampTo(0.0, 0.05, dist_from_cardiod) * 20.0;
+                t = pow(t, 3.0);
+                col = genColorOnLineAt(color1, color2, t);
+            }
+
+            img.set(i, j, color(col.r, col.g, col.b));
+        }
+    }
+
+    img.updatePixels();
+    return img;
+}
 
 /**
  * @param {int} lifetime The lifetime of the Entity in milliseconds
  * @returns {CircleEntity}
  */
 function genRandomCircle(lifetime) {
-    let col = genColorOnLine(gColor1, gColor2);
+    let col = genColorOnLine(gColor2, gColor3);
     let controlPoints = genRandomPathPoints();
-    let path = new CubicBezier2D(screenOrigin, controlPoints[0], controlPoints[1], screenBottomRight);
-    return new CircleEntity(genRandomRadius(), screenOrigin, col, lifetime, path);
+    let path = new CubicBezier2D(gCusp, controlPoints[0], controlPoints[1], screenMidRight);
+    return new CircleEntity(genRandomRadius(), gCusp, col, lifetime, path);
 }
 
 function genRandomPointOnScreen() {
@@ -292,7 +365,7 @@ function setup() {
     gNow = Date.now();
 
     createCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
-    gBackgroundImage = createRadialGradientImage(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, gBackgroundColor1, gBackgroundColor2);
+    gBackgroundImage = createCardiodImage(SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
 // Main loop function for P5
